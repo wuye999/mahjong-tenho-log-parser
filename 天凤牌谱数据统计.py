@@ -7,7 +7,7 @@ import pandas as pd  # pip install pandas
 from tqdm import tqdm  # pip install tqdm
 import requests  # pip install requests
 import toml  # pip install toml
-import openpyxl
+import openpyxl  # pip install openpyxl
 
 # 在pyinstaller打包环境下返回资源地址
 def resource_path(relative_path):
@@ -59,6 +59,15 @@ def download_paipu(original_url, save_dir="paipu_data"):
         return None
     
     try:
+        # 保存文件
+        log_id = extract_log_id(original_url) 
+        # save_path = os.path.join(save_dir, f"{log_id}.json") 
+        save_path = Path(save_dir).joinpath(f"{log_id}.json")
+        # 判断文件是否存在
+        if save_path.exists():
+            print(f"该牌谱已存在，跳过下载: {original_url}")
+            return save_path
+
         response = requests.get(
             download_url,
             headers=get_headers(original_url),
@@ -66,10 +75,6 @@ def download_paipu(original_url, save_dir="paipu_data"):
         )
         response.raise_for_status()
         
-        # 保存文件
-        log_id = extract_log_id(original_url) 
-        # save_path = os.path.join(save_dir, f"{log_id}.json") 
-        save_path = Path(save_dir).joinpath(f"{log_id}.json")
         with open(resource_path(save_path), 'w', encoding='utf-8') as f:
             json.dump(response.json(), f)
         print(f"下载成功: {original_url}")
@@ -371,7 +376,7 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, target_player):
         '放铳率': final_kyoku_df['放铳'].mean(),
         '副露率': final_kyoku_df['副露'].mean(),
         '立直率': final_kyoku_df['立直'].mean(),
-        '默听率': final_kyoku_df.loc[final_kyoku_df['和了'], '默听'].mean(),
+        '默听率': final_kyoku_df.loc[ final_kyoku_df['和了'], '默听' ].mean(),
         '和牌时立直率': final_kyoku_df.loc[final_kyoku_df['和了'], '立直'].mean(),
         '和牌时副露率': final_kyoku_df.loc[final_kyoku_df['和了'], '副露'].mean(),
         '和牌自摸率': final_kyoku_df.loc[final_kyoku_df['和了'], '自摸'].mean(),
@@ -393,13 +398,21 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, target_player):
         '平均放铳打点': final_kyoku_df.loc[final_kyoku_df['放铳'], '放铳打点'].mean(),
         '放铳时立直率': final_kyoku_df.loc[final_kyoku_df['放铳'], '立直'].mean(),
         '放铳时副露率': final_kyoku_df.loc[final_kyoku_df['放铳'], '副露'].mean(),
-        '放铳时门清率': 1 - final_kyoku_df.loc[final_kyoku_df['放铳'], '立直'].mean() - final_kyoku_df.loc[final_kyoku_df['放铳'], '副露'].mean(),
+        '放铳时门清率': (
+                    (final_kyoku_df[final_kyoku_df['放铳']]['立直'] == False) & 
+                    (final_kyoku_df[final_kyoku_df['放铳']]['副露'] == False)
+                ).mean(),
         '流局率': final_kyoku_df['流局'].mean(),
-        '流局听牌率': final_kyoku_df.loc[final_kyoku_df['流局时听牌'].notnull(), '流局时听牌'].mean(),
-        '流局平均得点': final_kyoku_df.loc[final_kyoku_df['流局时得点'].notnull(), '流局时得点'].mean(),
-        '立直流局时听牌率': final_kyoku_df.loc[final_kyoku_df['立直'], '流局时听牌'].mean(),
-        '副露流局时听牌率': final_kyoku_df.loc[final_kyoku_df['副露'], '流局时听牌'].mean(),
-        '门清流局时听牌率': final_kyoku_df.loc[(final_kyoku_df['立直'] == False) & (final_kyoku_df['副露'] == False), '流局时听牌'].mean(),
+        '流局听牌率': final_kyoku_df.loc[final_kyoku_df['流局'], '流局时听牌'].mean(),
+        '流局平均得点': final_kyoku_df.loc[final_kyoku_df['流局'], '流局时得点'].mean(),
+        '立直流局时听牌率': final_kyoku_df.loc[final_kyoku_df['流局'] & final_kyoku_df['立直'], '流局时听牌'].mean(),
+        '副露流局时听牌率': final_kyoku_df.loc[final_kyoku_df['流局'] & final_kyoku_df['副露'], '流局时听牌'].mean(),
+        '门清流局时听牌率': final_kyoku_df.loc[
+                    final_kyoku_df['流局'] & 
+                    (final_kyoku_df['立直'] == False) & 
+                    (final_kyoku_df['副露'] == False), 
+                    '流局时听牌'
+                ].mean(),
     }
 
     # 合并统计指标
