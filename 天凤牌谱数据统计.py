@@ -8,6 +8,11 @@ from tqdm import tqdm  # pip install tqdm
 import requests  # pip install requests
 import toml  # pip install toml
 import openpyxl  # pip install openpyxl
+import matplotlib.pyplot as plt  # pip install matplotlib
+import numpy as np  # pip install numpy
+import seaborn as sns
+import scipy
+from 四麻风格分析 import MahjongAnalyzer
 
 # 在pyinstaller打包环境下返回资源地址
 def resource_path(relative_path):
@@ -223,8 +228,8 @@ def process_paipu(file_path, target_player, config):
             '流局时得点': None,
             '立直先制': None,
             '立直巡目': None,
-            '追立': None,
-            '自摸': None,
+            '追立': False,
+            '自摸': False,
             '流局': False,
         })
         
@@ -395,7 +400,7 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, target_player):
         '副露后流局率': final_kyoku_df.loc[final_kyoku_df['副露'], '流局'].mean(),
         '副露和牌打点': final_kyoku_df.loc[final_kyoku_df['副露'], '和了打点'].mean(),
         '副露和牌巡目': final_kyoku_df.loc[final_kyoku_df['副露'], '和了巡目'].mean(),
-        '平均放铳打点': final_kyoku_df.loc[final_kyoku_df['放铳'], '放铳打点'].mean(),
+        '平均放铳打点': abs(final_kyoku_df.loc[final_kyoku_df['放铳'], '放铳打点'].mean()),
         '放铳时立直率': final_kyoku_df.loc[final_kyoku_df['放铳'], '立直'].mean(),
         '放铳时副露率': final_kyoku_df.loc[final_kyoku_df['放铳'], '副露'].mean(),
         '放铳时门清率': (
@@ -414,9 +419,30 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, target_player):
                     '流局时听牌'
                 ].mean(),
     }
+    # 四麻风格分析
+    mahjong_analyzer = MahjongAnalyzer()
+    data = {
+        'horyu_rate': kyoku_stats['和了率']*100,
+        'houju_rate': kyoku_stats['放铳率']*100,
+        'furo_rate': kyoku_stats['副露率']*100,
+        'riichi_rate': kyoku_stats['立直率']*100,
+        'dama_rate': kyoku_stats['默听率']*100,
+        'average_score': kyoku_stats['平均和了打点'],
+        'avg_horyu_turn': kyoku_stats['平均和了巡目'],
+        'avg_houju_score': kyoku_stats['平均放铳打点'],
+        'ryukyoku_rate': kyoku_stats['流局听牌率']*100,
+        'riichi_turn': kyoku_stats['平均立直巡目'],
+        'riichi_first_rate': kyoku_stats['立直先制率']*100,
+        'riichi_chase_rate': kyoku_stats['追立率']*100,
+    }
+    X, Y, style = mahjong_analyzer.analyze(data=data, output_filename=resource_path(f"{target_player}_风格分析.png"))
+    print(f"成功生成风格分析图：{target_player}_风格分析.png")
 
     # 合并统计指标
     hanchan_stats.update(kyoku_stats)
+    hanchan_stats.update({
+        '风格分析结果': style,
+    })
 
     # 格式处理：数值保留3位小数
     formatted_stats = pd.Series(hanchan_stats).to_frame('统计值')
@@ -450,7 +476,33 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, target_player):
                 index=False
             )
             
-        print(f"成功生成统计报告：{file_name}")
+        print(f"成功生成统计报告：{target_player}_统计报告.xlsx")
+
+        # 相关性热力图
+        filtered_df = final_kyoku_df[['和了', '放铳', '副露', '立直', '默听', "和了打点", "和了巡目", "放铳打点","流局时听牌","流局时得点","立直先制","立直巡目","追立","自摸","流局"]]
+        methods = [
+            'pearson',   # 皮尔逊相关系数
+            'spearman',   # 斯皮尔曼等级相关系数
+            'kendall'  # 肯德尔秩相关系数
+            ]
+        for method in methods:
+            try:
+                # 计算相关系数
+                correlation = filtered_df.corr(method=method)
+                # 绘制热力图
+                plt.figure(figsize=(10, 8))
+                sns.heatmap(correlation, annot=True, cmap='coolwarm', fmt=".2f")
+                plt.title(f'{method}相关系数热力图')
+                # 保存图片
+                plt.tight_layout()
+                save_path = resource_path(f"{target_player}_{method}相关系数热力图.png")
+                plt.savefig(save_path, dpi=300, bbox_inches="tight")
+                plt.close()  # 防止内存泄漏
+                print(f"成功生成{method}相关系数热力图：{target_player}_{method}相关系数热力图.png")
+            except Exception as e:
+                print(f"生成{method}相关系数热力图失败：{str(e)}")
+
+
     except Exception as e:
         print(f"文件保存失败：{str(e)}")
     
@@ -502,5 +554,5 @@ if __name__ == "__main__":
     else:
         print("未找到符合条件的牌谱数据")
 
-    print(f"统计报告已生成，请查看：{config['filter']['players']}_统计报告.xlsx")
+    print(f"统计报告已生成，请自行查看")
     input('按回车关闭')
