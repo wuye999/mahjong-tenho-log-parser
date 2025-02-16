@@ -47,7 +47,8 @@
    ```
 
 5. 运行分析程序
-   双击运行，即可生成Excel报告
+   
+   双击运行，即可生成Excel报告，风格分析图，相关系数热力图等。
    
 ## 📦 使用源代码运行
 
@@ -75,6 +76,12 @@ pip install -r requirements.txt
 
 ### 小局数据表
 ![image](https://github.com/user-attachments/assets/7542c6d7-1f3a-48fc-b4f4-fc85e498ee0c)
+
+### 风格分析图
+![image](https://github.com/user-attachments/assets/1879ed20-11ce-4f12-be97-e3447ed7e322)
+
+### 相关系数热力图
+![image](https://github.com/user-attachments/assets/b021ecf9-ba9d-48d2-885f-ff7090d69845)
 
 
 ## 📌 注意事项
