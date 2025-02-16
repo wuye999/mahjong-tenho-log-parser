@@ -26,7 +26,7 @@
    
    - 方法一（推荐）：安装使用油猴插件自动获取牌谱
       - 安装该插件：https://greasyfork.org/zh-CN/scripts/527090-天凤牌谱链接提取器
-      - 打开 tenhou.net/3/ 进入牌谱界面，点击插件生成的牌谱下载按钮即可。
+      - 打开 tenhou.net/3/ 进入牌谱界面，点击下载即可得到”牌谱.txt“文件。
       - ![image](https://github.com/user-attachments/assets/ece19325-16ef-45f4-93d9-ff0ea7793852)
 
    - 方法二：创建或编辑`牌谱.txt`，每行放一个tenhou牌谱链接
@@ -47,7 +47,7 @@
    ```
 
 5. 运行分析程序
-   双击运行
+   双击运行，即可生成Excel报告
    
 ## 📦 使用源代码运行
 
