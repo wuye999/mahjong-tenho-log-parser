@@ -23,13 +23,19 @@
     - 天凤牌谱数据统计.exe
 
 2. 准备牌谱链接文件
-   - 创建或编辑`牌谱.txt`，每行放一个tenhou牌谱链接
+   
+   - 方法一（推荐）：安装使用油猴插件自动获取牌谱
+      - 安装该插件：https://greasyfork.org/zh-CN/scripts/527090-天凤牌谱链接提取器
+      - 打开 tenhou.net/3/ 进入牌谱界面，点击插件生成的牌谱下载按钮即可。
+      - ![image](https://github.com/user-attachments/assets/ece19325-16ef-45f4-93d9-ff0ea7793852)
+
+   - 方法二：创建或编辑`牌谱.txt`，每行放一个tenhou牌谱链接
    ```
    https://tenhou.net/6/?log=2025021117gm-0089-0000-406067c8&tw=2
    https://tenhou.net/6/?log=2025021117gm-0089-0000-c16837d6&tw=2
    ```
 
-3. 编辑配置文件
+4. 编辑配置文件
    ```toml
    # config.toml
    [filter]
@@ -40,7 +46,7 @@
    timebefore = "2099-12-31 23:59:59"  # 分析截止时间
    ```
 
-4. 运行分析程序
+5. 运行分析程序
    双击运行
    
 ## 📦 使用源代码运行
