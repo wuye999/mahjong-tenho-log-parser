@@ -73,8 +73,7 @@ pip install -r requirements.txt
 ### 风格分析图
 
 关于风格分析的python版本代码在本库“四麻风格分析.py”里。
-
-![image](https://github.com/user-attachments/assets/1879ed20-11ce-4f12-be97-e3447ed7e322)
+![鹿目円_风格分析](https://github.com/user-attachments/assets/19cba814-5b1c-4645-af1f-1ec398d7635e)
 
 ### 相关系数热力图
 展示spearman相关系数热力图，其余未展示的两个分别是pearson相关系数、kendall相关系数。
