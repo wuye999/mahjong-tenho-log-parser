@@ -140,7 +140,7 @@ class MahjongAnalyzer:
             # plt.scatter(point['x'], point['y'], color='black', s=100)
             plt.annotate(point['label'], (point['x'], point['y']), 
                         xytext=(point['x'] + 0.1, point['y'] - 0.1),
-                        fontsize=10, fontweight='bold')
+                        fontsize=15, fontweight='bold')
 
         # 绘制当前点
         plt.scatter(X, Y, color='red', s=100, zorder=3)
