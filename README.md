@@ -11,6 +11,8 @@
 
 ## 🚀 快速开始
 0. 下载exe程序压缩包
+    下载链接：https://github.com/wuye999/mahjong-tenho-log-parser/releases/latest/download/default.zip
+    若下载缓慢可使用代理地址：https://cdn.jsdelivr.net/gh/wuye999/mahjong-tenho-log-parser@latest/default.zip
     下载解压后将得到以下文件
     - config.toml
     - 牌谱.txt
@@ -70,6 +72,7 @@ pip install -r requirements.txt
 1. 需要保持网络连接以访问tenhou.net
 2. 首次运行会自动创建`paipu_data/`目录存储下载的牌谱
 3. 每个牌谱约占用3-15KB存储空间
+4. 如有疑问请查看并使用源代码
 
 ## 📄 协议
 
