@@ -76,6 +76,9 @@ pip install -r requirements.txt
 ![image](https://github.com/user-attachments/assets/7542c6d7-1f3a-48fc-b4f4-fc85e498ee0c)
 
 ### 风格分析图
+
+关于风格分析的python版本代码在本库“四麻风格分析.py”里。
+
 ![image](https://github.com/user-attachments/assets/1879ed20-11ce-4f12-be97-e3447ed7e322)
 
 ### 相关系数热力图
