@@ -1,9 +1,6 @@
 ```markdown
 # 天凤牌谱分析工具
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-
 本工具用于自动化分析日本麻将天凤牌谱数据，支持从tenhou.net平台下载牌谱并生成详细的统计报告。
 
 ## 📋 功能特性
