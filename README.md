@@ -62,17 +62,15 @@ pip install -r requirements.txt
 ```
 
 ## 📊 输出解释
+输出包含1个Excel报告，1个风格分析图，3个相关性热力图，以下是示例
 
 生成的Excel报告包含三个工作表：
 
 ### 综合统计表
 ![image](https://github.com/user-attachments/assets/034d931d-28c3-4cf2-aebf-cb255713ed38)
 
-
 ### 半庄数据表
 ![image](https://github.com/user-attachments/assets/3ab6f586-fd01-4fb2-b894-8caf3e55299b)
-
-
 
 ### 小局数据表
 ![image](https://github.com/user-attachments/assets/7542c6d7-1f3a-48fc-b4f4-fc85e498ee0c)
@@ -81,6 +79,7 @@ pip install -r requirements.txt
 ![image](https://github.com/user-attachments/assets/1879ed20-11ce-4f12-be97-e3447ed7e322)
 
 ### 相关系数热力图
+展示spearman相关系数热力图，其余未暂时的两个分别是pearson相关系数、kendall相关系数。
 ![image](https://github.com/user-attachments/assets/b021ecf9-ba9d-48d2-885f-ff7090d69845)
 
 
