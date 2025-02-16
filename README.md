@@ -12,9 +12,10 @@
 ## 🚀 快速开始
 0. 下载exe程序压缩包
    
-    下载链接：https://github.com/wuye999/mahjong-tenho-log-parser/releases/latest/download/default.zip
-   
-    若下载缓慢可使用代理地址：https://cdn.jsdelivr.net/gh/wuye999/mahjong-tenho-log-parser@latest/default.zip
+    下载链接，任选一个
+    - https://github.com/wuye999/mahjong-tenho-log-parser/releases/latest/download/default.zip
+    - https://cdn.jsdelivr.net/gh/wuye999/mahjong-tenho-log-parser@latest/default.zip
+    - https://gh-proxy.com/github.com/wuye999/mahjong-tenho-log-parser/releases/latest/download/default.zip
    
     下载解压后将得到以下文件
     - config.toml
