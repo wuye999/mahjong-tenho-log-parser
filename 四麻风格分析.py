@@ -1,8 +1,7 @@
 # 首先确保已经安装了必要的库
 import matplotlib.pyplot as plt
 import numpy as np
-plt.rcParams['font.family'] = 'SimHei'
-plt.rcParams['axes.unicode_minus'] = False  # 是否显示负号
+
 
 # 定义MahjongAnalyzer类（与之前相同）
 class MahjongAnalyzer:
@@ -43,6 +42,9 @@ class MahjongAnalyzer:
             {"label": "副露速度型", "x": -25, "y": -4},
             {"label": "全局参与型", "x": -15, "y": 22},
         ]
+        plt.rcdefaults()  # 恢复所有配置到默认值
+        plt.rcParams['font.family'] = 'SimHei'
+        plt.rcParams['axes.unicode_minus'] = False  # 是否显示负号
 
     def standardize(self, value, mean, std_dev):
         return (value - mean) / std_dev
@@ -177,6 +179,7 @@ class MahjongAnalyzer:
         # plt.savefig(output_filename, dpi=300)
         # plt.show()
         plt.savefig(output_filename, dpi=300)
+        plt.close()  # 防止内存泄漏
 
     def analyze(self, **kwargs):
         data = kwargs.get('data', None)
