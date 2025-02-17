@@ -174,8 +174,8 @@ def plot_rate_changes(
     # 查找极值点
     max_rate = plot_df['累计rate'].max()
     min_rate = plot_df['累计rate'].min()
-    max_indices = plot_df.index[plot_df['累计rate'] == max_rate].tolist()
-    min_indices = plot_df.index[plot_df['累计rate'] == min_rate].tolist()
+    max_indices = plot_df.index[plot_df['累计rate'] == max_rate].tolist()[0]
+    min_indices = plot_df.index[plot_df['累计rate'] == min_rate].tolist()[0]
     # --- 折线图标注调整（关键修复）---
 
     # 计算数据范围用于动态调整标注位置
@@ -183,34 +183,32 @@ def plot_rate_changes(
     vertical_offset = rate_range * 0.08  # 动态偏移量（原为固定百分比）
 
     # 标注最高点（使用动态偏移）
-    for idx in max_indices:
-        ax2.annotate(f'峰值: {int(max_rate)}',
-                    xy=(idx, max_rate),
-                    xytext=(idx-0.5, max_rate + vertical_offset),  # 动态Y偏移
-                    arrowprops=dict(
-                        arrowstyle='->',
-                        color='red',
-                        linewidth=1.5*font_scale,
-                        shrinkA=0,
-                        shrinkB=5
-                    ),
-                    fontsize=base_font,
-                    color='red')
+    ax2.annotate(f'峰值: {int(max_rate)}',
+                xy=(max_indices, max_rate),
+                xytext=(max_indices-0.5, max_rate + vertical_offset),  # 动态Y偏移
+                arrowprops=dict(
+                    arrowstyle='->',
+                    color='red',
+                    linewidth=1.5*font_scale,
+                    shrinkA=0,
+                    shrinkB=5
+                ),
+                fontsize=base_font,
+                color='red')
 
     # 标注最低点
-    for idx in min_indices:
-        ax2.annotate(f'谷值: {int(min_rate)}',
-                    xy=(idx, min_rate),
-                    xytext=(idx-0.5, min_rate - vertical_offset),  # 动态Y偏移
-                    arrowprops=dict(
-                        arrowstyle='->',
-                        color='blue',
-                        linewidth=1.5*font_scale,
-                        shrinkA=0,
-                        shrinkB=5
-                    ),
-                    fontsize=base_font,
-                    color='blue')
+    ax2.annotate(f'谷值: {int(min_rate)}',
+                xy=(min_indices, min_rate),
+                xytext=(min_indices-0.5, min_rate - vertical_offset),  # 动态Y偏移
+                arrowprops=dict(
+                    arrowstyle='->',
+                    color='blue',
+                    linewidth=1.5*font_scale,
+                    shrinkA=0,
+                    shrinkB=5
+                ),
+                fontsize=base_font,
+                color='blue')
 
     ax2.set_title('rate变动趋势', pad=20, fontsize=base_font+4)
     ax2.set_ylabel('当前rate值', labelpad=15, fontsize=base_font-3)
@@ -249,8 +247,8 @@ def plot_rate_changes(
         
     smart_xticks(ax1)
     # # 应用设置到Y轴
-    ax1.tick_params(axis='y', labelsize=base_font-5)
-    ax2.tick_params(axis='y', labelsize=base_font-5)
+    # ax1.tick_params(axis='y', labelsize=base_font-5)
+    # ax2.tick_params(axis='y', labelsize=base_font-5)
 
     # 紧凑布局
     plt.tight_layout()
