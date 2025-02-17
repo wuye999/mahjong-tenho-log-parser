@@ -247,8 +247,10 @@ def plot_pt_changes(
         
     smart_xticks(ax1)
     # # 应用设置到Y轴
-    # ax1.tick_params(axis='y', labelsize=base_font-5)
-    # ax2.tick_params(axis='y', labelsize=base_font-5)
+    ax1.tick_params(axis='x', labelsize=base_font-5)
+    ax2.tick_params(axis='x', labelsize=base_font-5)
+    ax1.tick_params(axis='y', labelsize=base_font-5)
+    ax2.tick_params(axis='y', labelsize=base_font-5)
 
     # 紧凑布局
     plt.tight_layout()
