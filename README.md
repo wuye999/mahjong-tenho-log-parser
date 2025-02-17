@@ -16,7 +16,7 @@
     下载链接，任选一个
     - https://github.com/wuye999/mahjong-tenho-log-parser/releases/latest/download/default.zip
     - https://gh-proxy.com/github.com/wuye999/mahjong-tenho-log-parser/releases/latest/download/default.zip
-    - https://github.abskoop.workers.dev/https://github.com/wuye999/mahjong-tenho-log-parser/releases/download/v0.4/default.zip
+    - https://github.abskoop.workers.dev/https://github.com/wuye999/mahjong-tenho-log-parser/releases/download/latest/default.zip
    
     下载解压后将得到以下文件
     - config.toml
