@@ -15,8 +15,8 @@
    
     下载链接，任选一个
     - https://github.com/wuye999/mahjong-tenho-log-parser/releases/latest/download/default.zip
-    - https://cdn.jsdelivr.net/gh/wuye999/mahjong-tenho-log-parser@latest/default.zip
     - https://gh-proxy.com/github.com/wuye999/mahjong-tenho-log-parser/releases/latest/download/default.zip
+    - https://github.abskoop.workers.dev/https://github.com/wuye999/mahjong-tenho-log-parser/releases/download/v0.4/default.zip
    
     下载解压后将得到以下文件
     - config.toml
@@ -68,6 +68,14 @@ pip install -r requirements.txt
 
 ### 综合统计表
 ![image](https://github.com/user-attachments/assets/5e2aeb80-4e25-4aa5-8c45-0bf10dfd3b9b)
+
+### pt变化图
+![アンさん_pt变化图](https://github.com/user-attachments/assets/a71880a0-f47d-4f08-9429-5ba9fb7f3738)
+
+### rate变化图
+
+当牌谱不连续时，缺失的数据会导致rate的变化幅度看起来非常大。例如：1月1日rate为2200，9月1日rate为1800，但中间的牌谱缺失。虽然看起来变化幅度会显得异常大，但数据是准确的。
+![アンさん_rate变化图](https://github.com/user-attachments/assets/c671a9ff-9e8a-4b63-8d93-cb248b17ca23)
 
 
 ### 风格分析图
