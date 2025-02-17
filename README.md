@@ -70,12 +70,12 @@ pip install -r requirements.txt
 ![image](https://github.com/user-attachments/assets/5e2aeb80-4e25-4aa5-8c45-0bf10dfd3b9b)
 
 ### pt变化图
-![アンさん_pt变化图](https://github.com/user-attachments/assets/a71880a0-f47d-4f08-9429-5ba9fb7f3738)
+![アンさん_pt变化图](https://github.com/user-attachments/assets/28adf630-462e-49d7-9b14-4ad7a160922d)
 
 ### rate变化图
 
 当牌谱不连续时，缺失的数据会导致rate的变化幅度看起来非常大。例如：1月1日rate为2200，9月1日rate为1800，但中间的牌谱缺失。虽然看起来变化幅度会显得异常大，但数据是准确的。
-![アンさん_rate变化图](https://github.com/user-attachments/assets/c671a9ff-9e8a-4b63-8d93-cb248b17ca23)
+![アンさん_rate变化图](https://github.com/user-attachments/assets/6087bd99-3eb2-4fa6-be01-378668045732)
 
 
 ### 风格分析图
