@@ -2,6 +2,7 @@ import json
 import sys
 from pathlib import Path
 from datetime import datetime
+import concurrent.futures
 from urllib.parse import parse_qs, urlparse
 import pandas as pd  # pip install pandas
 from tqdm import tqdm  # pip install tqdm
@@ -26,20 +27,17 @@ def resource_path(relative_path):
 
 
 def extract_log_id(url):
-    """从原始URL中提取log参数值"""
     parsed = urlparse(url)
     params = parse_qs(parsed.query)
     return params.get('log', [None])[0]
 
 def build_download_url(original_url):
-    """构建下载用URL"""
     log_id = extract_log_id(original_url)
     if not log_id:
         return None
     return f"https://tenhou.net/5/mjlog2json.cgi?{log_id}"
 
 def get_headers(referer):
-    """生成请求头"""
     return {
         'Accept': '*/*',
         'Accept-Encoding': 'gzip, deflate, br, zstd',
@@ -57,26 +55,22 @@ def get_headers(referer):
     }
 
 def download_paipu(original_url, save_dir="paipu_data"):
-    """下载单个牌谱"""
-    save_dir_path = Path(resource_path(save_dir))
+    save_dir_path = Path(save_dir)
     save_dir_path.mkdir(parents=True, exist_ok=True)
-    # os.makedirs(save_dir, exist_ok=True)
     
     download_url = build_download_url(original_url)
     if not download_url:
         print(f"无效URL: {original_url}")
         return None
     
-    try:
-        # 保存文件
-        log_id = extract_log_id(original_url) 
-        # save_path = os.path.join(save_dir, f"{log_id}.json") 
-        save_path = Path(save_dir).joinpath(f"{log_id}.json")
-        # 判断文件是否存在
-        if save_path.exists():
-            print(f"该牌谱已存在，跳过下载: {original_url}")
-            return save_path
+    log_id = extract_log_id(original_url)
+    save_path = save_dir_path.joinpath(f"{log_id}.json")
+    
+    if save_path.exists():
+        print(f"该牌谱已存在，跳过下载: {original_url}")
+        return save_path
 
+    try:
         response = requests.get(
             download_url,
             headers=get_headers(original_url),
@@ -84,7 +78,7 @@ def download_paipu(original_url, save_dir="paipu_data"):
         )
         response.raise_for_status()
         
-        with open(resource_path(save_path), 'w', encoding='utf-8') as f:
+        with open(save_path, 'w', encoding='utf-8') as f:
             json.dump(response.json(), f)
         print(f"下载成功: {original_url}")
         return save_path
@@ -92,19 +86,38 @@ def download_paipu(original_url, save_dir="paipu_data"):
         print(f"下载失败 {original_url}: {str(e)}")
         return None
 
-def process_paipu_file(txt_path, target_player):
-    """处理整个牌谱文件"""
-    print("开始下载牌谱文件...")
-    with open(resource_path(txt_path), 'r', encoding='utf-8') as f:
-        for line in f:
-            url = line.strip()
-            if not url:
-                continue
-            
-            # 下载牌谱
-            json_path = download_paipu(url, f"paipu_data/{target_player}")
-            if not json_path:
-                continue
+def process_paipu_file(txt_path, target_player, download_threads):
+    print("开始读取URL列表...")
+    with open(txt_path, 'r', encoding='utf-8') as f:
+        urls = [line.strip() for line in f if line.strip()]
+    print(f"读取完成，总共有{len(urls)}个URL")
+    
+    success_count = 0
+    failure_count = 0
+    
+    print(f"并发数{download_threads}开始下载...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=download_threads) as executor:
+        futures = {executor.submit(download_paipu, url, f"paipu_data/{target_player}"): url for url in urls}
+        
+        for future in concurrent.futures.as_completed(futures):
+            url = futures[future]
+            try:
+                result = future.result()
+                if result:
+                    success_count +=1
+                else:
+                    failure_count +=1
+            except Exception as e:
+                print(f"下载失败：{url}，错误：{str(e)}")
+                failure_count +=1
+                
+    print("\n下载统计结果:")
+    print(f"成功下载数量：{success_count}")
+    print(f"下载失败数量：{failure_count}")
+    print(f"总数：{success_count + failure_count}")
+    if len(urls) != (success_count + failure_count):
+        print("注意：部分URL可能未被处理，检查总数是否一致")
+
 
 def parse_ref_time(ref_str):
     """解析牌谱ref中的时间"""
@@ -703,7 +716,7 @@ if __name__ == "__main__":
     config = load_config()
 
     # 下载牌谱
-    process_paipu_file(config["filter"]["paipu_txt"], config["filter"]["players"])
+    process_paipu_file(config["filter"]["paipu_txt"], config["filter"]["players"], config['download'].get('download_threads', 5))
 
     # 分析所有牌谱
     final_kyoku_df, final_hanchan_df = analyze_directory(f'./paipu_data/{config["filter"]["players"]}', config["filter"]["players"], config)
