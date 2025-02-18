@@ -68,6 +68,7 @@ pip install -r requirements.txt
 
 ### 综合统计表
 统计数据示例：
+```csv
 ,统计值
 有效牌谱数,58.0
 有效小局数,345.0
@@ -113,6 +114,7 @@ pip install -r requirements.txt
 立直流局时听牌率,1.0
 副露流局时听牌率,0.5185
 门清流局时听牌率,0.1071
+```
 
 ![image](https://github.com/user-attachments/assets/5e2aeb80-4e25-4aa5-8c45-0bf10dfd3b9b)
 
