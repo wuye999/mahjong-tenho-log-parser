@@ -36,6 +36,14 @@
    ```
 
 4. 编辑配置文件
+
+
+请用记事本打开配置文件"config.toml"，并修改其玩家昵称、牌桌级别。然后Ctrl+S保存配置文件。
+
+
+示例：
+
+
    ```toml
    # config.toml
    [filter]
@@ -60,6 +68,7 @@
 ```bash
 pip install -r requirements.txt
 ```
+
 
 ## 📊 输出解释
 输出包含1个“统计报告.html“文件，一个”统计报告”文件夹，用于存放html网页所需的文件。
