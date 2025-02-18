@@ -138,8 +138,7 @@ pip install -r requirements.txt
 
 当牌谱不连续时，缺失的数据会导致rate的变化幅度看起来非常大。例如：1月1日rate为2200，9月1日rate为1800，但中间的牌谱缺失。虽然看起来变化幅度会显得异常大，但数据是准确的。
 
-![アンさん_rate变化图](https://github.com/user-attachments/assets/7de8d8b9-29f5-45f0-98f7-e135876ee609)
-
+![アンさん_rate变化图](https://github.com/user-attachments/assets/387289cf-7bee-4b5b-85da-7ee6022bb063)
 
 
 ### 风格分析图
