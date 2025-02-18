@@ -1,10 +1,15 @@
 [filter]
-players = "アンさん"      # 需要分析的玩家昵称
-levels = ["四般東喰赤", "四般南喰赤", "四上南喰赤", "四鳳東喰赤速"]     # 需要分析的牌桌级别
+players = "COEDO緑"      # 需要分析的玩家昵称
+levels = ["四般東喰赤", "四般南喰赤", "四上南喰赤", "四鳳南喰赤"]     # 需要分析的牌桌级别,留空时不限牌桌级别
 timeafter = "1970-01-01 08:00:00"       # 分析起始时间
 timebefore = "2099-12-31 23:59:59"      # 分析截止时间
+
+
+# 以下一般不要修改
 paipu_txt = "牌谱.txt"      # 保存牌谱的文件名
 
+[download]
+download_threads = 5    # 下载牌谱并发数
 
 [save]
 mahjong_analyzer = true
@@ -18,7 +23,7 @@ formatted_stats = false
 final_kyoku_df = false
 final_hanchan_df = false
 [save.csv]
-formatted_stats = false
+formatted_stats = true
 final_kyoku_df = false
 final_hanchan_df = false
 [save.json]
