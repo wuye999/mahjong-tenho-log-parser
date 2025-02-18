@@ -27,7 +27,7 @@
    
    - 方法一（推荐）：安装使用油猴插件自动获取牌谱
       - 安装该插件：https://greasyfork.org/zh-CN/scripts/527090-天凤牌谱链接提取器
-      - 进入牌谱界面，点击下载即可得到”牌谱.txt“文件。
+      - 进入牌谱界面，点击开始获取，等待获取完成，点击下载牌谱即可。
 
    - 方法二：创建或编辑`牌谱.txt`，每行放一个tenhou牌谱链接
    ```
@@ -130,23 +130,24 @@ pip install -r requirements.txt
 ![image](https://github.com/user-attachments/assets/5e2aeb80-4e25-4aa5-8c45-0bf10dfd3b9b)
 
 ### pt变化图
-具体实现代码在“pt变化图生成.py”里。
-![アンさん_pt变化图](https://github.com/user-attachments/assets/28adf630-462e-49d7-9b14-4ad7a160922d)
+
+![アンさん_pt变化图](https://github.com/user-attachments/assets/3012261e-c680-4885-be21-a51fd59cb510)
+
 
 ### rate变化图
 
 当牌谱不连续时，缺失的数据会导致rate的变化幅度看起来非常大。例如：1月1日rate为2200，9月1日rate为1800，但中间的牌谱缺失。虽然看起来变化幅度会显得异常大，但数据是准确的。
 
-具体实现代码在“rate变化图生成.py”里
-![アンさん_rate变化图](https://github.com/user-attachments/assets/6087bd99-3eb2-4fa6-be01-378668045732)
+![アンさん_rate变化图](https://github.com/user-attachments/assets/7de8d8b9-29f5-45f0-98f7-e135876ee609)
+
 
 
 ### 风格分析图
-具体实现代码在“四麻风格分析.py”。
+
 ![鹿目円_风格分析](https://github.com/user-attachments/assets/19cba814-5b1c-4645-af1f-1ec398d7635e)
 
 ### 相关系数热力图
-展示spearman相关系数热力图，其余未展示的两个分别是pearson相关系数、kendall相关系数。
+展示spearman系数热力图。
 ![image](https://github.com/user-attachments/assets/b021ecf9-ba9d-48d2-885f-ff7090d69845)
 
 ### excel文件、csv文件
