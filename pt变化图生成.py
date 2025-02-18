@@ -137,23 +137,51 @@ def plot_pt_changes(
         if original_value in seen_values:
             continue
         
-        # 计算标签位置
-        if original_value == 0:
-            y_pos = 5 + 0.5  # 在7高度的基础上加0.5单位
-            va = 'bottom'
+        # # 计算标签位置
+        # if original_value == 0:
+        #     y_pos = 5 + 0.5  # 在7高度的基础上加0.5单位
+        #     va = 'bottom'
+        # else:
+        #     offset = 0.03*original_value if original_value > 0 else -0.15*original_value
+        #     y_pos = bar.get_height() + offset
+        #     va = 'bottom' if original_value > 0 else 'top'
+
+        # 智能偏移计算（正负差异处理）
+        if original_value > 0:
+            offset = bar.get_height() * 0.15  # 正数：标注在柱子顶部高度的15%处
+            y_pos = bar.get_height() - offset  # 向下移动贴近柱子
+            va = 'top'  # 顶部对齐
         else:
-            offset = 0.03*original_value if original_value > 0 else -0.15*original_value
-            y_pos = bar.get_height() + offset
-            va = 'bottom' if original_value > 0 else 'top'
+            offset = abs(bar.get_height()) * 0.15  # 负数：标注在柱子底部的15%处
+            y_pos = bar.get_height() + offset  # 向上移动贴近柱子
+            va = 'bottom'  # 底部对齐
         
+        # 边界保护（确保在可视区域内）
+        y_min, y_max = ax1.get_ylim()
+        if original_value > 0:
+            y_pos = max(y_min + 0.05*(y_max-y_min), y_pos)  # 至少留出5%空间
+        else:
+            y_pos = min(y_max - 0.05*(y_max-y_min), y_pos)
+
+        # 智能字体计算（优化版）
+        fig_width_inch = figsize[0]
+        base_font_size = max(8, min(14, 72 * fig_width_inch / (len(plot_df)*0.6)))
+
         ax1.text(bar.get_x() + bar_width/2, 
                 y_pos,
                 f'{int(original_value)}',  # 显示原始值
                 ha='center', 
                 va=va,
-                fontsize=base_font,
+                bbox=dict(
+                    boxstyle="round,pad=0.3",
+                    facecolor="white",
+                    edgecolor="none",
+                    alpha=0.9
+                ),
+                fontsize=base_font_size,
                 color='black')
         seen_values.add(original_value)  # 基于原始值去重
+
     
     ax1.set_title(f'PT变动分析（共{len(plot_df)}局）', pad=20, fontsize=base_font+4)
     ax1.set_ylabel('PT变动值', labelpad=15, fontsize=base_font-3)
@@ -205,8 +233,9 @@ def plot_pt_changes(
                     color='blue',
                     linewidth=1.5*font_scale,
                     shrinkA=0,
-                    shrinkB=5
+                    shrinkB=5,
                 ),
+
                 fontsize=base_font,
                 color='blue')
 

@@ -129,42 +129,71 @@ def plot_rate_changes(
                    width=bar_width, color=colors, alpha=0.8)
     
     # --- 智能标注修改 ---
-    # 修改标注逻辑（保持原始值显示）
-    seen_values = set()
-    for idx, bar in enumerate(bars):
-        original_value = plot_df.at[idx, rate_col]  # 获取原始值
+    # 过滤掉零值变动
+    non_zero_df = plot_df[plot_df[rate_col] != 0]
+    # --- 最终优化版标注代码 ---
+    if not non_zero_df.empty:
+        # 创建绝对值列用于排序
+        non_zero_df = non_zero_df.assign(abs_rate=lambda x: x[rate_col].abs())
         
-        if original_value in seen_values:
-            continue
+        # 动态调整标注数量（最大12个）
+        max_annot = min(12, len(non_zero_df))
+        sorted_df = non_zero_df.sort_values('abs_rate', ascending=False).head(max_annot)
         
-        # 计算标签位置
-        # if original_value == 0:
-        #     y_pos = 0 + 0.5  # 在7高度的基础上加0.5单位
-        #     va = 'bottom'
-        # else:
-        offset = 0.03*original_value if original_value > 0 else -0.15*original_value
-        y_pos = bar.get_height() + offset
-        va = 'bottom' if original_value > 0 else 'top'
+        # 智能字体计算（优化版）
+        fig_width_inch = figsize[0]
+        base_font_size = max(8, min(14, 72 * fig_width_inch / (len(plot_df)*0.6)))
         
-        ax1.text(bar.get_x() + bar_width/2, 
-                y_pos,
-                f'{int(original_value)}',  # 显示原始值
-                ha='center', 
+        # 标注样式设置
+        bbox_props = dict(
+            boxstyle="round,pad=0.2",  # 减小内边距
+            facecolor="white",
+            edgecolor="none",
+            alpha=0.9
+        )
+        
+        # 动态位置调整（基于柱子高度）
+        for idx in sorted_df.index:
+            bar = bars[idx]
+            value = sorted_df.at[idx, rate_col]
+            bar_height = bar.get_height()
+            
+            # 智能偏移计算（正负差异处理）
+            if value > 0:
+                offset = bar_height * 0.15  # 正数：标注在柱子顶部高度的15%处
+                y_pos = bar_height - offset  # 向下移动贴近柱子
+                va = 'top'  # 顶部对齐
+            else:
+                offset = abs(bar_height) * 0.15  # 负数：标注在柱子底部的15%处
+                y_pos = bar_height + offset  # 向上移动贴近柱子
+                va = 'bottom'  # 底部对齐
+            
+            # 边界保护（确保在可视区域内）
+            y_min, y_max = ax1.get_ylim()
+            if value > 0:
+                y_pos = max(y_min + 0.05*(y_max-y_min), y_pos)  # 至少留出5%空间
+            else:
+                y_pos = min(y_max - 0.05*(y_max-y_min), y_pos)
+            
+            # 添加标注（优化位置参数）
+            ax1.text(
+                x=bar.get_x() + bar_width/2,
+                y=y_pos,
+                s=f"{int(value)}",
+                ha='center',
                 va=va,
-                fontsize=base_font,
-                color='black')
-        seen_values.add(original_value)  # 基于原始值去重
+                fontsize=base_font_size,
+                bbox=bbox_props,
+                zorder=10
+            )
+
+    # --- 保持其他代码不变 ---
     
     ax1.set_title(f'rate变动分析（共{len(plot_df)}局）', pad=20, fontsize=base_font+4)
     ax1.set_ylabel('rate变动值', labelpad=15, fontsize=base_font-3)
     ax1.grid(axis='y', linestyle='--', alpha=0.7)
     ax1.set_xlim(-0.5, len(plot_df)-0.5)
 
-    # # --- 折线图（调整标注样式）---
-    # line = ax2.plot(plot_df['order'], plot_df['累计rate'], 
-    #                 marker='o', markersize=8*font_scale, 
-    #                 linestyle='-', linewidth=2*font_scale,
-    #                 color='#2196F3', markerfacecolor='white')
     # --- 折线图（调整标注样式）---
     line = ax2.plot(plot_df['order'], plot_df['累计rate'], 
                     marker=None, markersize=8*font_scale, 
@@ -193,6 +222,7 @@ def plot_rate_changes(
                     shrinkA=0,
                     shrinkB=5
                 ),
+                # bbox=bbox_props,
                 fontsize=base_font,
                 color='red')
 
@@ -207,6 +237,7 @@ def plot_rate_changes(
                     shrinkA=0,
                     shrinkB=5
                 ),
+                # bbox=bbox_props,
                 fontsize=base_font,
                 color='blue')
 
