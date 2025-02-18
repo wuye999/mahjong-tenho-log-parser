@@ -177,9 +177,15 @@ def process_paipu(file_path, target_player, config):
         rule_disp = "三" +paipu['rule']['disp']
 
     # 2. 牌桌级别过滤
-    if rule_disp not in config['filter']['levels']:
-        return pd.DataFrame(), pd.DataFrame()
-    
+    if config['filter']['levels']:
+        if rule_disp not in config['filter']['levels']:
+            return pd.DataFrame(), pd.DataFrame()
+        else:
+            ...
+    else:
+        # 留空分析所有牌桌
+        ...
+        
     # 3. 时间过滤
     game_time = datetime.strptime(parse_ref_time(ref), "%Y-%m-%d %H:%M:%S")
     if not (config['filter']['timeafter'] <= game_time <= config['filter']['timebefore']):
@@ -249,47 +255,46 @@ def process_paipu(file_path, target_player, config):
             '自摸': False,
             '流局': False,
         })
-        
+
         # 处理结果类型
         if result[0] == '和了':
             for i, v in enumerate(result[1]):
-                if i != seat:
-                    continue
-                if v > 0:
-                    game_info.update({
-                        '和了': True,
-                        '和了打点': result[1][seat] - game[0][1]*300 - game[0][2]*1000,
-                        '和了巡目': len(discard_actions) + 1,
-                        '默听': has_riichi is False and game_info['副露'] is False,
-                        '自摸': False,
-                    })
-                    if 0 not in result[1]:  # 自摸
+                if i == seat:
+                    if v > 0:
                         game_info.update({
-                            '自摸': True,
+                            '和了': True,
+                            '和了打点': result[1][seat] - game[0][1]*300 - game[0][2]*1000,
+                            '和了巡目': len(discard_actions) + 1,
+                            '默听': has_riichi is False and game_info['副露'] is False,
+                            '自摸': False,
                         })
-                    
-                elif v < 0:
-                    if 0 not in result[1]:  # 被自摸，不算放铳
-                        game_info.update({
-                            '放铳': False,
-                            '放铳打点': None
-                        })
-                    else:
-                        game_info.update({
-                            '放铳': True,
-                            '放铳打点': result[1][seat]
-                        })
-                # elif v == 0:
-                #     game_info.update({
-                #         '和了': False,
-                #         '和了打点': None,
-                #         '和了巡目': None,
-                #         '默听': None,
-                #         '放铳': False,
-                #         '放铳打点':None,
-                #     })
-                # else:
-                #     raise ValueError(f'Unexpected result value: {result}')
+                        if 0 not in result[1]:  # 自摸
+                            game_info.update({
+                                '自摸': True,
+                            })
+                        
+                    elif v < 0:
+                        if 0 not in result[1]:  # 被自摸，不算放铳
+                            game_info.update({
+                                '放铳': False,
+                                '放铳打点': None
+                            })
+                        else:
+                            game_info.update({
+                                '放铳': True,
+                                '放铳打点': result[1][seat]
+                            })
+                    # elif v == 0:
+                    #     game_info.update({
+                    #         '和了': False,
+                    #         '和了打点': None,
+                    #         '和了巡目': None,
+                    #         '默听': None,
+                    #         '放铳': False,
+                    #         '放铳打点':None,
+                    #     })
+                    # else:
+                    #     raise ValueError(f'Unexpected result value: {result}')
 
         # 修正后代码
         elif result[0] == '流局':
@@ -301,7 +306,7 @@ def process_paipu(file_path, target_player, config):
                 '放铳打点': None,
                 '流局': True,
             })
-        elif game[16] == ['九種九牌'] or game[16] == ['四風連打']:
+        elif result[0] == '九種九牌' or result[0] == '四風連打':
             game_info.update({
                 '流局时听牌': False,
                 '流局时得点': 0,
@@ -309,7 +314,7 @@ def process_paipu(file_path, target_player, config):
                 '放铳打点': None,
                 '流局': True,
             })
-        elif game[16] == ['全員不聴']:
+        elif result[0] == '全員不聴':
             game_info.update({
                 '流局时听牌': False,
                 '流局时得点': 0,
@@ -317,7 +322,7 @@ def process_paipu(file_path, target_player, config):
                 '放铳打点': None,
                 '流局': True,
             })
-        elif game[16] == ['全員聴牌']:
+        elif result[0] == '全員聴牌':
             game_info.update({
                 '流局时听牌': True,
                 '流局时得点': 0,
@@ -325,7 +330,7 @@ def process_paipu(file_path, target_player, config):
                 '放铳打点': None,
                 '流局': True,
             })
-        elif len(game[16]) == 1:
+        elif len(result) == 1:
             game_info.update({
                 '流局时听牌': False,
                 '流局时得点': 0,
@@ -334,7 +339,7 @@ def process_paipu(file_path, target_player, config):
                 '流局': True,
             })
         else:
-            raise ValueError(f'Unexpected result: {game[16]}')
+            raise ValueError(f'Unexpected result: {result}')
         # if len(game[16]) == 0:
         #     print('存在game[16]为空')
 
@@ -555,6 +560,30 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, config):
     # 合并统计指标
     hanchan_stats.update(kyoku_stats)
 
+    # 四麻风格分析（可选）
+    if config['save'].get("mahjong_analyzer", False):
+        mahjong_analyzer = MahjongAnalyzer()
+        data = {
+            'horyu_rate': kyoku_stats['和了率']*100,
+            'houju_rate': kyoku_stats['放铳率']*100,
+            'furo_rate': kyoku_stats['副露率']*100,
+            'riichi_rate': kyoku_stats['立直率']*100,
+            'dama_rate': kyoku_stats['默听率']*100,
+            'average_score': kyoku_stats['平均和了打点'],
+            'avg_horyu_turn': kyoku_stats['平均和了巡目'],
+            'avg_houju_score': kyoku_stats['平均放铳打点'],
+            'ryukyoku_rate': kyoku_stats['流局听牌率']*100,
+            'riichi_turn': kyoku_stats['平均立直巡目'],
+            'riichi_first_rate': kyoku_stats['立直先制率']*100,
+            'riichi_chase_rate': kyoku_stats['追立率']*100,
+        }
+
+        # 风格分析
+        X, Y, style = mahjong_analyzer.analyze(data=data, output_filename=resource_path(f"./{target_player}_统计报告/{target_player}_风格分析.png"))
+        print(f"成功生成风格分析图：{target_player}_风格分析图.png")
+        hanchan_stats.update({
+            '风格分析结果': style,
+        })
     # 格式处理：数值保留4位小数
     formatted_stats = pd.Series(hanchan_stats).to_frame('统计值')
     formatted_stats['统计值'] = formatted_stats['统计值'].apply(
@@ -612,30 +641,6 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, config):
             print(f"成功生成统计报告：{target_player}_统计报告.xlsx")
 
 
-        # 四麻风格分析（可选）
-        if config['save'].get("mahjong_analyzer", False):
-            mahjong_analyzer = MahjongAnalyzer()
-            data = {
-                'horyu_rate': kyoku_stats['和了率']*100,
-                'houju_rate': kyoku_stats['放铳率']*100,
-                'furo_rate': kyoku_stats['副露率']*100,
-                'riichi_rate': kyoku_stats['立直率']*100,
-                'dama_rate': kyoku_stats['默听率']*100,
-                'average_score': kyoku_stats['平均和了打点'],
-                'avg_horyu_turn': kyoku_stats['平均和了巡目'],
-                'avg_houju_score': kyoku_stats['平均放铳打点'],
-                'ryukyoku_rate': kyoku_stats['流局听牌率']*100,
-                'riichi_turn': kyoku_stats['平均立直巡目'],
-                'riichi_first_rate': kyoku_stats['立直先制率']*100,
-                'riichi_chase_rate': kyoku_stats['追立率']*100,
-            }
-
-            # 风格分析
-            X, Y, style = mahjong_analyzer.analyze(data=data, output_filename=resource_path(f"./{target_player}_统计报告/{target_player}_风格分析.png"))
-            print(f"成功生成风格分析图：{target_player}_风格分析图.png")
-            hanchan_stats.update({
-                '风格分析结果': style,
-            })
 
         # pt变化柱状图和折线图（可选）
         if config['save'].get("pt_change", True):

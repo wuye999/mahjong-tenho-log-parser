@@ -1,311 +1,190 @@
+"""Rate变化分析图生成工具"""
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-
-
-# 生成rate变化柱状图和折线图
 def plot_rate_changes(
     df: pd.DataFrame,
     time_col: str = '对局时间',
     rate_col: str = 'rate变动',
     figsize: tuple = (18, 12),
     font_scale: float = 2.5,
-    max_time_labels: int = 20,  # 新增参数控制最大时间标签数
-    first_rate: int = 0,  # 新增参数，用于设置初始rate值
+    max_bar_labels: int = 15,  # 新增参数：最大柱状图标注数
+
+    first_rate: int = 0,
 ) -> plt.Figure:
     """
-    绘制rate变动分析图（含智能标注）
+    绘制Rate变动分析图（双图布局）
 
-    参数：
+    参数说明：
     ----------
-    df : pandas.DataFrame
-        需要可视化的数据表，必须包含时间列和rate变动列
-    time_col : str, 可选（默认：'对局时间'）
-        时间列的名称，该列应为可转换为datetime的字符串格式
-    rate_col : str, 可选（默认：'rate变动'）
-        rate变动值的列名称
-    figsize : tuple, 可选（默认：(18, 12)）
-        图表尺寸（宽，高）单位英寸
-    font_scale : float, 可选（默认：1.2）
-        字体缩放系数（1.0为基准大小）
-    max_time_labels: int, 可选（默认：15）
-        横轴时间标签的最大数量，超过此数量将自动调整标签密度
+    df : 包含时间和Rate变动数据的数据框
+    time_col : 时间列名（需可转为datetime）
+    rate_col : Rate变动值列名
+    figsize : 图表尺寸（英寸）
+    font_scale : 字体缩放系数（基准为10rate）
+    max_time_labels : X轴最大时间标签数
+    first_rate : 初始Rate值
+    density_threshold: 新增密度阈值参数
 
     返回：
     -------
-    matplotlib.figure.Figure
-        生成的图表对象，可用于保存或进一步修改
-
-    功能说明：
-    ----------
-    1. 生成双图布局（上为柱状图，下为折线图）
-    2. 柱状图显示单局rate变动，相同值仅标注首次出现
-    3. 折线图显示累计rate趋势，标注最高/最低点
-    4. 自适应横轴标签密度
-    5. 自动处理时间格式和显示重叠
-
-    示例：
-    ----------
-    >>> import numpy as np
-    >>> import pandas as pd
-    >>> import matplotlib.pyplot as plt
-    >>> from rate变化图生成 import plot_rate_changes
-
-    >>> # 创建示例数据
-    >>> data = [
-        {'对局时间': '2023-01-01 14:00', 'rate变动': 60},
-        {'对局时间': '2023-01-01 14:00', 'rate变动': 15},
-        {'对局时间': '2023-01-02 09:00', 'rate变动': -30},
-        {'对局时间': '2023-01-03 18:00', 'rate变动': 45}
-    ]
-    >>> df = pd.DataFrame(data)
-    
-    >>> # 生成图表
-    >>> fig = plot_rate_changes(df)
-    >>> plt.show()
-    
-    >>> # 保存图表
-    >>> fig.savefig('rate_analysis.png', dpi=300, bbox_inches='tight')
+    matplotlib.figure.Figure 图表对象
     """
-    plt.rcdefaults()  # 恢复所有配置到默认值
-    # 预处理数据
-    plot_df = df.copy()
-    plot_df['_datetime'] = pd.to_datetime(plot_df[time_col])
-    plot_df = plot_df.sort_values('_datetime').reset_index(drop=True)
     
-    # 新增高度调整字段（仅用于可视化高度）
-    plot_df['_rate_height'] = plot_df[rate_col].apply(lambda x: 0 if x == 0 else x)  # 新增行
-
-    # 生成顺序索引和格式化时间标签
-    plot_df['order'] = np.arange(len(plot_df))
-      # 修改累计rate计算方式（关键修改处）
-    plot_df['累计rate'] = first_rate + plot_df[rate_col].cumsum()  # 新增first_rate参数
-
-    plot_df['date_label'] = plot_df['_datetime'].dt.strftime('%m-%d')  # 新列名称
-     # 创建显示用标签（关键修改）
-    plot_df['display_label'] = plot_df['date_label'].where(
-        ~plot_df['date_label'].duplicated(),
-        ''
-    )   
-
-    # 设置字体参数
+    #=== 数据预处理 ================================================
+    plot_df = df.copy()
+    plot_df['time_formatted'] = pd.to_datetime(plot_df[time_col])
+    plot_df = plot_df.sort_values('time_formatted').reset_index(drop=True)
+    
+    # 生成可视化辅助列
+    plot_df['order'] = plot_df.index
+    plot_df['累计Rate'] = first_rate + plot_df[rate_col].cumsum()
+    plot_df['date_label'] = plot_df['time_formatted'].dt.strftime('%m-%d')
+ 
+    
+    #=== 可视化配置 ================================================
+    plt.close('all')
+    style_list = ['seaborn-v0_8', 'seaborn', 'ggplot', 'classic']
+    plt.style.use(next((s for s in style_list if s in plt.style.available), 'classic'))
+    
     base_font = 10 * font_scale
     plt.rcParams.update({
         'font.size': base_font,
-        'axes.titlesize': base_font + 2,
+        'axes.titlesize': base_font + 4,
         'axes.labelsize': base_font + 1,
-        'xtick.labelsize': base_font,
-        'ytick.labelsize': base_font
+        'xtick.labelsize': base_font - 2,
+        'ytick.labelsize': base_font - 2,
+        'font.sans-serif': ['SimHei'],
+        'axes.unicode_minus': False
     })
-
-    # 设置样式兼容性
-    def get_compatible_style():
-        available = plt.style.available
-        styles = ['seaborn-v0_8', 'seaborn', 'ggplot', 'classic']
-        return next((s for s in styles if s in available), 'classic')
     
-    plt.style.use(get_compatible_style())
-    plt.rcParams['font.sans-serif'] = ['SimHei']
-    plt.rcParams['axes.unicode_minus'] = False
-
-    # 创建画布和子图
+    #=== 图表初始化 ================================================
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize, sharex=True)
+    fig.subplots_adjust(hspace=0.15)
+    
+    #=== 智能柱状图系统 ============================================
+    def get_mode_pd(values):
+        """用pandas计算众数，处理多众数和无众数的情况"""
+        if values.empty:
+            return None
+        modes = values.mode()
+        if not modes.empty:
+            # 取第一个众数（可自定义逻辑，例如取平均值：modes.mean()）
+            return modes.iloc[0]
+        return None
 
-    # --- 柱状图（调整字体）---
-    bar_width = 0.8
-    # colors = ['#4CAF50' if x >=0 else '#F44336' for x in plot_df[rate_col]]
-    # --- 颜色生成修改 ---
-    colors = []
-    for x in plot_df[rate_col]:  # 保持原始值判断逻辑
-        if x > 0:
-            colors.append('#4CAF50')
-        elif x < 0:
-            colors.append('#F44336')
+    # 分离正负值（排除0）
+    positive_values = plot_df[rate_col][plot_df[rate_col] > 0]
+    negative_values = plot_df[rate_col][plot_df[rate_col] < 0]
+
+    # 计算众数（若无众数则回退到中位数）
+    pos_mode = get_mode_pd(positive_values) or positive_values.median()
+    neg_mode = get_mode_pd(negative_values) or negative_values.median()
+
+    # 设置归一化范围
+    vmin = neg_mode if not negative_values.empty else plot_df[rate_col].min()
+    vmax = pos_mode if not positive_values.empty else plot_df[rate_col].max()
+
+    color_norm = plt.Normalize(vmin=vmin, vmax=vmax)
+    colors = plt.cm.RdYlGn(color_norm(plot_df[rate_col]))
+    
+    # 柱体参数配置
+    dense = len(plot_df) > 200
+    bar_config = {
+        'width': 1.0 if dense else 0.9,
+        'alpha': 0.7 if dense else 0.8,
+        'edgecolor': 'none' if dense else 'k',
+        'linewidth': 0 if dense else 0.5,
+        'color': colors,
+    }
+    
+    # bars = ax1.bar('order', plot_df[rate_col].replace(0,5), data=plot_df, **bar_config)
+    bars = ax1.bar('order', plot_df[rate_col], data=plot_df, **bar_config)
+    
+    # 标注系统
+    label_interval = max(1, len(plot_df) // max_bar_labels)
+    seen_values = set()
+    for idx, bar in enumerate(bars):
+        if idx % label_interval != 0: continue
+        current_value = plot_df.at[idx, rate_col]
+        if current_value in seen_values:
+            continue
+        
+        # 动态位置计算
+        if current_value > 0:
+            y_pos = bar.get_height() - abs(bar.get_height())*0.15
+            va = 'top'
         else:
-            colors.append('#757575')  # 0值颜色
-    # 修改bar调用使用_rate_height作为高度
-    bars = ax1.bar(plot_df['order'], plot_df['_rate_height'],  # 修改为_rate_height
-                   width=bar_width, color=colors, alpha=0.8)
-    
-    # --- 智能标注修改 ---
-    # 过滤掉零值变动
-    non_zero_df = plot_df[plot_df[rate_col] != 0]
-    # --- 最终优化版标注代码 ---
-    if not non_zero_df.empty:
-        # 创建绝对值列用于排序
-        non_zero_df = non_zero_df.assign(abs_rate=lambda x: x[rate_col].abs())
+            y_pos = bar.get_height() + abs(bar.get_height())*0.15
+            va = 'bottom'
         
-        # 动态调整标注数量（最大12个）
-        max_annot = min(12, len(non_zero_df))
-        sorted_df = non_zero_df.sort_values('abs_rate', ascending=False).head(max_annot)
-        
-        # 智能字体计算（优化版）
-        fig_width_inch = figsize[0]
-        base_font_size = max(8, min(14, 72 * fig_width_inch / (len(plot_df)*0.6)))
-        
-        # 标注样式设置
-        bbox_props = dict(
-            boxstyle="round,pad=0.2",  # 减小内边距
-            facecolor="white",
-            edgecolor="none",
-            alpha=0.9
-        )
-        
-        # 动态位置调整（基于柱子高度）
-        for idx in sorted_df.index:
-            bar = bars[idx]
-            value = sorted_df.at[idx, rate_col]
-            bar_height = bar.get_height()
-            
-            # 智能偏移计算（正负差异处理）
-            if value > 0:
-                offset = bar_height * 0.15  # 正数：标注在柱子顶部高度的15%处
-                y_pos = bar_height - offset  # 向下移动贴近柱子
-                va = 'top'  # 顶部对齐
-            else:
-                offset = abs(bar_height) * 0.15  # 负数：标注在柱子底部的15%处
-                y_pos = bar_height + offset  # 向上移动贴近柱子
-                va = 'bottom'  # 底部对齐
-            
-            # 边界保护（确保在可视区域内）
-            y_min, y_max = ax1.get_ylim()
-            if value > 0:
-                y_pos = max(y_min + 0.05*(y_max-y_min), y_pos)  # 至少留出5%空间
-            else:
-                y_pos = min(y_max - 0.05*(y_max-y_min), y_pos)
-            
-            # 添加标注（优化位置参数）
-            ax1.text(
-                x=bar.get_x() + bar_width/2,
-                y=y_pos,
-                s=f"{int(value)}",
-                ha='center',
-                va=va,
-                fontsize=base_font_size,
-                bbox=bbox_props,
-                zorder=10
-            )
+        # 边界保护
+        y_min, y_max = ax1.get_ylim()
+        safe_range = 0.05 * (y_max - y_min)
+        y_pos = np.clip(y_pos, y_min + safe_range, y_max - safe_range)
 
-    # --- 保持其他代码不变 ---
-    
-    ax1.set_title(f'rate变动分析（共{len(plot_df)}局）', pad=20, fontsize=base_font+4)
-    ax1.set_ylabel('rate变动值', labelpad=15, fontsize=base_font-3)
+        # 添加标注
+        ax1.text(
+            bar.get_x() + bar.get_width()/2, y_pos,
+            f'{int(current_value)}',
+            ha='center', va=va,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+            fontsize=max(8, min(14, 72 * figsize[0] / (len(plot_df)*0.6))),
+            color='black'
+        )
+        seen_values.add(current_value)
+
+    #=== 图表装饰 =================================================
+    ax1.set(title=f'Rate变动分析（共{len(plot_df)}局）', ylabel='Rate变动值')
     ax1.grid(axis='y', linestyle='--', alpha=0.7)
     ax1.set_xlim(-0.5, len(plot_df)-0.5)
-
-    # --- 折线图（调整标注样式）---
-    line = ax2.plot(plot_df['order'], plot_df['累计rate'], 
-                    marker=None, markersize=8*font_scale, 
-                    linestyle='-', linewidth=2*font_scale,
-                    color='#2196F3', markerfacecolor='white')
     
-    # 查找极值点
-    max_rate = plot_df['累计rate'].max()
-    min_rate = plot_df['累计rate'].min()
-    max_indices = plot_df.index[plot_df['累计rate'] == max_rate].tolist()[0]
-    min_indices = plot_df.index[plot_df['累计rate'] == min_rate].tolist()[0]
-    # --- 折线图标注调整（关键修复）---
-
-    # 计算数据范围用于动态调整标注位置
-    rate_range = plot_df['累计rate'].max() - plot_df['累计rate'].min()
-    vertical_offset = rate_range * 0.08  # 动态偏移量（原为固定百分比）
-
-    # 标注最高点（使用动态偏移）
-    ax2.annotate(f'峰值: {int(max_rate)}',
-                xy=(max_indices, max_rate),
-                xytext=(max_indices-0.5, max_rate + vertical_offset),  # 动态Y偏移
-                arrowprops=dict(
-                    arrowstyle='->',
-                    color='red',
-                    linewidth=1.5*font_scale,
-                    shrinkA=0,
-                    shrinkB=5
-                ),
-                # bbox=bbox_props,
-                fontsize=base_font,
-                color='red')
-
-    # 标注最低点
-    ax2.annotate(f'谷值: {int(min_rate)}',
-                xy=(min_indices, min_rate),
-                xytext=(min_indices-0.5, min_rate - vertical_offset),  # 动态Y偏移
-                arrowprops=dict(
-                    arrowstyle='->',
-                    color='blue',
-                    linewidth=1.5*font_scale,
-                    shrinkA=0,
-                    shrinkB=5
-                ),
-                # bbox=bbox_props,
-                fontsize=base_font,
-                color='blue')
-
-    ax2.set_title('rate变动趋势', pad=20, fontsize=base_font+4)
-    ax2.set_ylabel('当前rate值', labelpad=15, fontsize=base_font-3)
-    ax2.grid(axis='both', linestyle='--', alpha=0.7)
-
-    # --- 智能横轴标签 ---
-    def smart_xticks(ax):
-        """更新后的智能标签函数"""
-        total = len(plot_df)
-        
-        if total <= max_time_labels:
-            indices = plot_df['order']
-            labels = plot_df['display_label']  # 使用处理后的标签
-        else:
-            indices = np.linspace(0, total-1, num=max_time_labels, dtype=int)
-            labels = plot_df['display_label'].iloc[indices]  # 使用处理后的标签
-
-        # 清理连续空白标签（新增逻辑）
-        cleaned_labels = []
-        prev_label = None
-        for label in labels:
-            if label == prev_label and label == '':
-                cleaned_labels.append(None)  # 彻底隐藏连续空白
-            else:
-                cleaned_labels.append(label)
-                prev_label = label
-
-        # 设置最终标签
-        ax.set_xticks(indices)
-        ax.set_xticklabels(
-            cleaned_labels,  # 使用清理后的标签
-            rotation=45 if total > max_time_labels else 30,
-            ha='right',
-            fontsize=base_font-5
+    #=== 折线图系统 ================================================
+    ax2.plot('order', '累计Rate', data=plot_df, linestyle='-', 
+            linewidth=2*font_scale, color='#2196F3', alpha=0.8)
+    
+    # 极值标注
+    rate_range = plot_df['累计Rate'].max() - plot_df['累计Rate'].min()
+    for ext_type, color, offset in [('max', 'red', 1), ('min', 'blue', -1)]:
+        idx = getattr(plot_df['累计Rate'], f'idx{ext_type}')()
+        value = plot_df.at[idx, '累计Rate']
+        ax2.annotate(
+            f'{value}', (idx, value),
+            xytext=(idx, value + rate_range*0.1*offset),
+            arrowprops=dict(arrowstyle='->', color=color, linewidth=1.5*font_scale),
+            ha='center', fontsize=base_font*0.9, color=color,
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.8)
         )
-        
-    smart_xticks(ax1)
-    # 应用设置到Y轴
-    ax1.tick_params(axis='x', labelsize=base_font-5)
-    ax2.tick_params(axis='x', labelsize=base_font-5)
-    ax1.tick_params(axis='y', labelsize=base_font-5)
-    ax2.tick_params(axis='y', labelsize=base_font-5)
+    
+    ax2.set(title='Rate变动趋势', ylabel='累计Rate值')
+    ax2.grid(axis='both', linestyle='--', alpha=0.7)
+    
+    #=== 智能坐标轴优化 ============================================
+    def set_smart_ticks(ax, plot_df):
+        n = len(plot_df)
+        num_ticks = min(n, 10)
+        if n <= 1:
+            return
+        indices = np.linspace(0, n-1, num_ticks, dtype=int)
+        labels = [plot_df.at[i, 'date_label'] for i in indices]
+        ax.set_xticks(indices)
+        ax.set_xticklabels(labels, rotation=45, ha='right')
+        ax.tick_params(axis='x', labelsize=max(8, base_font - 2))
 
-    # 紧凑布局
+    set_smart_ticks(ax2, plot_df)  # 共享x轴，只需设置ax2
+    
     plt.tight_layout()
-    plt.close()
     return fig
 
 if __name__ == '__main__':
-
-    # 创建测试数据
-    data = [
-        {'对局时间': '2023-01-01 14:00', 'rate变动': 0},
-        {'对局时间': '2023-01-01 14:00', 'rate变动': 26.38},
-        {'对局时间': '2023-01-02 09:00', 'rate变动': 8.63},
-        {'对局时间': '2023-01-03 18:00', 'rate变动': -17.24},
-        {'对局时间': '2023-01-04 12:00', 'rate变动': -8.02},
-        {'对局时间': '2023-01-05 15:00', 'rate变动': 25.33},
-    ]
-    df = pd.DataFrame(data)
-
-    # 生成图表
-    fig = plot_rate_changes(df,rate_col='rate变动',first_rate=1800)
-
-    # 显示图表
+    np.random.seed(42)
+    test_df = pd.DataFrame({
+        '对局时间': pd.date_range('2023-01-01', periods=1000, freq='H'),
+        'rate变动': np.random.randint(-50, 100, 1000)
+    })
+    
+    fig = plot_rate_changes(test_df)
+    fig.savefig('orateimized_demo.png', dpi=150, bbox_inches='tight')
     plt.show()
-
-    # 保存为高清图片
-    # fig.savefig('large_font_analysis.png', dpi=300, bbox_inches='tight')
