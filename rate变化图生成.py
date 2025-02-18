@@ -158,7 +158,7 @@ def plot_rate_changes(
             bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.8)
         )
     
-    ax2.set(title='Rate变动趋势', ylabel='累计Rate值')
+    ax2.set(title='Rate变动趋势', ylabel='当前Rate值')
     ax2.grid(axis='both', linestyle='--', alpha=0.7)
     
     #=== 智能坐标轴优化 ============================================
