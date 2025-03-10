@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 from pathlib import Path
 from datetime import datetime
 import concurrent.futures
@@ -77,6 +78,7 @@ def download_paipu(original_url, save_dir="paipu_data"):
             timeout=10
         )
         response.raise_for_status()
+        response.json()
         
         with open(save_path, 'w', encoding='utf-8') as f:
             json.dump(response.json(), f)
@@ -114,6 +116,7 @@ def process_paipu_file(txt_path, target_player, download_threads):
     print("\n下载统计结果:")
     print(f"成功下载数量：{success_count}")
     print(f"下载失败数量：{failure_count}")
+    time.sleep(3)
     print(f"总数：{success_count + failure_count}")
     if len(urls) != (success_count + failure_count):
         print("注意：部分URL可能未被处理，检查总数是否一致")
@@ -263,16 +266,11 @@ def process_paipu(file_path, target_player, config):
                     if v > 0:
                         game_info.update({
                             '和了': True,
-                            '和了打点': result[1][seat] - game[0][1]*300 - game[0][2]*1000,
-                            '和了巡目': len(discard_actions) + 1,
+                            '和了巡目': len(discard_actions),
+                            '和了打点': result[1][seat] - 1000 if has_riichi else result[1][seat],
                             '默听': has_riichi is False and game_info['副露'] is False,
-                            '自摸': False,
+                            '自摸': True if 0 not in result[1] else False,
                         })
-                        if 0 not in result[1]:  # 自摸
-                            game_info.update({
-                                '自摸': True,
-                            })
-                        
                     elif v < 0:
                         if 0 not in result[1]:  # 被自摸，不算放铳
                             game_info.update({
