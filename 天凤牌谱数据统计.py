@@ -116,10 +116,10 @@ def process_paipu_file(txt_path, target_player, download_threads):
     print("\n下载统计结果:")
     print(f"成功下载数量：{success_count}")
     print(f"下载失败数量：{failure_count}")
-    time.sleep(3)
     print(f"总数：{success_count + failure_count}")
     if len(urls) != (success_count + failure_count):
         print("注意：部分URL可能未被处理，检查总数是否一致")
+    time.sleep(3)
 
 
 def parse_ref_time(ref_str):
@@ -337,7 +337,9 @@ def process_paipu(file_path, target_player, config):
                 '流局': True,
             })
         else:
-            raise ValueError(f'Unexpected result: {result}')
+            print(f'ValueError:\n    Unexpected result: {result}')
+            continue
+            # raise ValueError(f'Unexpected result: {result}')
         # if len(game[16]) == 0:
         #     print('存在game[16]为空')
 
