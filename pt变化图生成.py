@@ -93,7 +93,7 @@ def plot_pt_changes(
     # 柱体参数配置
     dense = len(plot_df) > 200
     bar_config = {
-        'width': 1.0 if dense else 0.9,
+        'width': 1.0 if dense else 0.8,
         'alpha': 0.7 if dense else 0.8,
         'edgecolor': 'none' if dense else 'k',
         'linewidth': 0 if dense else 0.5,

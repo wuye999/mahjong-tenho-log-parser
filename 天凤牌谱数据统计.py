@@ -1,6 +1,7 @@
 import json
 import sys
 import time
+import webbrowser
 from pathlib import Path
 from datetime import datetime
 import concurrent.futures
@@ -735,4 +736,5 @@ if __name__ == "__main__":
         print("未找到符合条件的牌谱数据")
 
     print(f'统计报告已生成，点击 {config["filter"]["players"]}_统计报告.html 查看')
+    webbrowser.open(resource_path(f'{config["filter"]["players"]}_统计报告.html'))
     input('按回车关闭')
