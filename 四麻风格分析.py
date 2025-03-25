@@ -1,6 +1,8 @@
 # 首先确保已经安装了必要的库
 import matplotlib.pyplot as plt
 import numpy as np
+from io import BytesIO
+import base64
 
 
 # 定义MahjongAnalyzer类（与之前相同）
@@ -146,23 +148,6 @@ class MahjongAnalyzer:
 
         # 绘制当前点
         plt.scatter(X, Y, color='red', s=100, zorder=3)
-
-        # # 在当前点旁边显示XY坐标
-        # plt.annotate(f'({X:.1f}, {Y:.1f})', 
-        #             xy=(X, Y),
-        #             xytext=(3, 3),  # 偏移量
-        #             textcoords='offset points',
-        #             ha='left', va='bottom',
-        #             fontsize=12, color='red',
-        #             )
-        # # 在当前点旁边显示风格类型
-        # plt.annotate(f'{style}', 
-        #             xy=(X, Y),
-        #             xytext=(-10, -10),  # 偏移量
-        #             textcoords='offset points',
-        #             ha='left', va='bottom',
-        #             fontsize=12, color='red',
-        #             )
         plt.text(-20, 28, f'坐标: ({X:.1f}, {Y:.1f})\n风格: {style}',
                     ha='left', va='bottom',
                     fontsize=12, color='red',
@@ -176,10 +161,26 @@ class MahjongAnalyzer:
         plt.xlabel('X')
         plt.ylabel('Y')
         plt.title('麻将风格分析')
-        # plt.savefig(output_filename, dpi=300)
+        # if output_filename:
+        #     plt.savefig(output_filename, dpi=300)
         # plt.show()
-        plt.savefig(output_filename, dpi=300)
-        plt.close()  # 防止内存泄漏
+        # 保存到内存缓冲区
+        img_buffer = BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=300)
+        plt.close()  # 关闭图像，防止内存泄漏
+
+        # 获取二进制数据
+        img_bytes = img_buffer.getvalue()
+        # 获取Base64编码数据
+        img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+
+        # 如果需要保存到文件
+        if output_filename:
+            with open(output_filename, 'wb') as f:
+                f.write(img_bytes)
+
+        return img_bytes, img_base64  # 返回二进制和Base64数据
+
 
     def analyze(self, **kwargs):
         data = kwargs.get('data', None)
@@ -222,8 +223,8 @@ class MahjongAnalyzer:
                             std_riichi_turn, std_riichi_first, std_riich_chase)
 
         style = self.get_style(X, Y)
-        self.plot_result(X, Y, output_filename, style)
-        return X, Y, style
+        img_bytes, img_base64 = self.plot_result(X, Y, output_filename, style)
+        return X, Y, style, img_bytes, img_base64
 
 
 if __name__ == '__main__':

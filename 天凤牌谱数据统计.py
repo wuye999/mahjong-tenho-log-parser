@@ -1,6 +1,8 @@
 import json
 import sys
 import time
+import base64
+from io import BytesIO
 import webbrowser
 from pathlib import Path
 from datetime import datetime
@@ -223,29 +225,31 @@ def process_paipu(file_path, target_player, config):
             riichi_turn = None
             for turn_idx, action in enumerate(discard_actions):
                 if isinstance(action, str) and action.startswith('r'):
-                    riichi_turn = turn_idx
+                    riichi_turn = turn_idx+1
                     break  # 只记录第一次立直
             riichi_turns.append(riichi_turn)
-        
+    
 
-        # 遍历玩家副露
-        calls = []
-        for a in game[6 + 3*seat - 1]:  # 玩家摸牌
-            if isinstance(a, str) and any(op in a for op in ['c', 'p', 'm', 'k'])  :  # 包含吃/碰/明杠/加杠标识
-                calls.append(a)
-        for a in game[6 + 3*seat]:  # 玩家出牌
-            if isinstance(a, str) and any(op in a for op in ['c', 'p', 'm', 'k'])  :
-                calls.append(a)
-
+        # # 遍历玩家副露
+        # calls = []
+        # for a in game[6 + 3*seat - 1]:  # 玩家摸牌
+        #     if isinstance(a, str) and any(op in a for op in ['c', 'p', 'm', 'k'])  :  # 包含吃/碰/明杠/加杠标识
+        #         calls.append(a)
+        # 立直巡目
         discard_actions = game[6 + 3*seat]  # 玩家出牌
+        # target_turn = next(i+1 for i, a in enumerate(discard_actions) 
+        #             if isinstance(a, str) and a.startswith('r'))
         has_riichi = any(isinstance(a, str) and a.startswith('r') for a in discard_actions)
-        
-        # 结果解析
-        result = game[16]
+        # 计算第一次副露的巡目
+        first_call_turn = None
+        for i, action in enumerate(game[6 + 3*seat - 1]):
+            if isinstance(action, str) and any(op in action for op in ['c', 'p', 'm', 'k']):
+                first_call_turn = i + 1  # 巡目从1开始
+                break    
+
         game_info.update({
             '和了': False,
             '放铳': False,
-            '副露': len(calls) > 0,
             '立直': has_riichi,
             '默听': None,
             '和了打点': None,
@@ -255,10 +259,26 @@ def process_paipu(file_path, target_player, config):
             '流局时得点': None,
             '立直先制': None,
             '立直巡目': None,
+            '副露巡目': None,
+            '放铳巡目': None,
             '追立': False,
             '自摸': False,
             '流局': False,
+            '副露': True if first_call_turn else False,
+            '副露巡目': first_call_turn,
         })
+
+        # 局收支
+        if game_idx <= len(paipu['log']) - 2:
+            收支 = paipu['log'][game_idx + 1][1][seat] - paipu['log'][game_idx][1][seat]
+        elif game_idx == len(paipu['log']) - 1:
+            收支 = process_hanchan_stats(paipu, target_player)['score'] - paipu['log'][game_idx][1][seat]
+        game_info.update({
+            '收支': 收支
+        })
+
+        # 结果解析
+        result = game[16]
 
         # 处理结果类型
         if result[0] == '和了':
@@ -267,43 +287,45 @@ def process_paipu(file_path, target_player, config):
                     if v > 0:
                         game_info.update({
                             '和了': True,
-                            '和了巡目': len(discard_actions),
+                            '和了巡目': len(discard_actions)+1,
                             '和了打点': result[1][seat] - 1000 if has_riichi else result[1][seat],
                             '默听': has_riichi is False and game_info['副露'] is False,
                             '自摸': True if 0 not in result[1] else False,
+                            # '收支': result[1][seat] - 1000 if has_riichi else result[1][seat],
                         })
                     elif v < 0:
                         if 0 not in result[1]:  # 被自摸，不算放铳
                             game_info.update({
                                 '放铳': False,
-                                '放铳打点': None
+                                '放铳打点': None,
+                                # '收支': result[1][seat] - 1000 if has_riichi else result[1][seat],
                             })
                         else:
                             game_info.update({
                                 '放铳': True,
-                                '放铳打点': result[1][seat]
-                            })
-                    # elif v == 0:
-                    #     game_info.update({
-                    #         '和了': False,
-                    #         '和了打点': None,
-                    #         '和了巡目': None,
-                    #         '默听': None,
-                    #         '放铳': False,
-                    #         '放铳打点':None,
-                    #     })
-                    # else:
-                    #     raise ValueError(f'Unexpected result value: {result}')
+                                '放铳打点': result[1][seat],
+                                '放铳巡目': len(discard_actions)+1,
+                                # '收支': result[1][seat] - 1000 if has_riichi else result[1][seat],
+                            })    
+                    elif v == 0: 
+                        pass
+                        # if has_riichi:
+                        #     game_info.update({
+                        #         '收支': result[1][seat] - 1000 if has_riichi else result[1][seat]
+                        #     })
+                    else:
+                        raise ValueError(f'Unexpected result value: {result}')             
 
         # 修正后代码
         elif result[0] == '流局':
             delta = result[1][seat]
             game_info.update({
                 '流局时听牌': delta > 0,
-                '流局时得点': delta,
+                '流局时得点': delta-1000 if has_riichi else delta,
                 '放铳': False,
                 '放铳打点': None,
                 '流局': True,
+                # '收支': delta-1000 if has_riichi else delta,
             })
         elif result[0] == '九種九牌' or result[0] == '四風連打':
             game_info.update({
@@ -346,7 +368,7 @@ def process_paipu(file_path, target_player, config):
 
         # 处理立直类型
         if has_riichi:
-            target_turn = next(i for i, a in enumerate(discard_actions) 
+            target_turn = next(i+1 for i, a in enumerate(discard_actions) 
                              if isinstance(a, str) and a.startswith('r'))
             is_senzu = True
             
@@ -480,6 +502,71 @@ def analyze_directory(directory, target_player, config):
     return final_kyoku_df, final_hanchan_df
 
 
+def insight_tags(
+        naki_rate: float,
+        hora_rate: float,
+        deal_in_rate: float,
+        riichi_rate: float,
+        rank_rates: list[float],
+        win_point: float,
+        beizha_rate: float,
+        libao_rate: float,
+        dama_rate: float,
+        point_ev: float
+) -> list[str]:
+    tags = []
+    naki_preferred = naki_rate > 0.36
+    menzen_preferred = naki_rate < 0.28
+    high_hora = hora_rate > 0.235
+    low_deal_in = deal_in_rate < 0.12
+    high_deal_in = deal_in_rate > 0.14
+    high_riichi = riichi_rate > 0.22
+    high_rank_1 = rank_rates[0] > 0.35
+    high_rank_last = rank_rates[-1] > 0.30
+    high_win_point = win_point > 7100
+    low_win_point = win_point < 6000
+ 
+    if naki_preferred:
+        if low_deal_in:
+            tags.append('副露防守')
+        else:
+            tags.append('副露流')
+    elif menzen_preferred:
+        if low_deal_in:
+            tags.append('门清防守')
+        elif high_hora:
+            tags.append('门清进攻流')
+        else:
+            tags.append('门清流')
+ 
+    if high_hora:
+        tags.append('进攻大师')
+    if low_deal_in:
+        tags.append('防守大师')
+    elif high_deal_in:
+        tags.append('狂战士')
+    if high_riichi:
+        tags.append('立直超人')
+    if high_rank_1:
+        tags.append('绝好调')
+    if high_rank_last:
+        tags.append('恶调中')
+    if high_win_point:
+        tags.append('打点重视型')
+    elif low_win_point:
+        tags.append('臭水重视型')
+ 
+    if beizha_rate > 0.125:
+        tags.append('被炸仙人')
+    if libao_rate > 0.37:
+        tags.append('里宝超人')
+    if point_ev > 200:
+        tags.append('局收支重视')
+    if dama_rate > 0.15:
+        tags.append('dama怪')
+ 
+    return tags
+
 def generate_statistics(final_kyoku_df, final_hanchan_df, config):
     """生成统计报告"""
     if final_kyoku_df.empty:
@@ -488,7 +575,7 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, config):
     
     target_player = config['filter']['players']
     save_dir_path = Path(resource_path(f"./{target_player}_统计报告/"))
-    save_dir_path.mkdir(parents=True, exist_ok=True)
+    # save_dir_path.mkdir(parents=True, exist_ok=True)
 
     # 按对局时间排序（确保时间顺序正确）
     final_hanchan_df = final_hanchan_df.sort_values('对局时间').reset_index(drop=True)
@@ -529,17 +616,22 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, config):
         '立直先制率': final_kyoku_df.loc[final_kyoku_df['立直'], '立直先制'].mean(),
         '追立率': final_kyoku_df.loc[final_kyoku_df['立直'], '追立'].mean(),
         '立直后和牌率': final_kyoku_df.loc[final_kyoku_df['立直'], '和了'].mean(),
+        '立直后自摸率': final_kyoku_df.loc[final_kyoku_df['立直'], '自摸'].mean(),
         '立直后放铳率': final_kyoku_df.loc[final_kyoku_df['立直'], '放铳'].mean(),
+        '立直后放铳打点': final_kyoku_df.loc[final_kyoku_df['立直'], '放铳打点'].mean(),
         '立直后流局率': final_kyoku_df.loc[final_kyoku_df['立直'], '流局'].mean(),
         '立直和牌打点': final_kyoku_df.loc[final_kyoku_df['立直'], '和了打点'].mean(),
         '立直和牌巡目': final_kyoku_df.loc[final_kyoku_df['立直'], '和了巡目'].mean(),
         '平均立直巡目': final_kyoku_df.loc[final_kyoku_df['立直'], '立直巡目'].mean(),
+        '平均副露巡目': final_kyoku_df.loc[final_kyoku_df['副露'], '副露巡目'].mean(),
         '副露后和牌率': final_kyoku_df.loc[final_kyoku_df['副露'], '和了'].mean(),
+        '副露后放铳打点': final_kyoku_df.loc[final_kyoku_df['副露'], '放铳打点'].mean(),
         '副露后放铳率': final_kyoku_df.loc[final_kyoku_df['副露'], '放铳'].mean(),
         '副露后流局率': final_kyoku_df.loc[final_kyoku_df['副露'], '流局'].mean(),
         '副露和牌打点': final_kyoku_df.loc[final_kyoku_df['副露'], '和了打点'].mean(),
         '副露和牌巡目': final_kyoku_df.loc[final_kyoku_df['副露'], '和了巡目'].mean(),
         '平均放铳打点': abs(final_kyoku_df.loc[final_kyoku_df['放铳'], '放铳打点'].mean()),
+        '平均放铳巡目': final_kyoku_df.loc[final_kyoku_df['放铳'], '放铳巡目'].mean(),
         '放铳时立直率': final_kyoku_df.loc[final_kyoku_df['放铳'], '立直'].mean(),
         '放铳时副露率': final_kyoku_df.loc[final_kyoku_df['放铳'], '副露'].mean(),
         '放铳时门清率': (
@@ -557,9 +649,25 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, config):
                     (final_kyoku_df['副露'] == False), 
                     '流局时听牌'
                 ].mean(),
+        '总收支': final_kyoku_df['收支'].sum(),
+        '局收支': final_kyoku_df['收支'].mean(),
     }
     # 合并统计指标
     hanchan_stats.update(kyoku_stats)
+    hanchan_stats.update({
+        'tags': ','.join(insight_tags(
+            hanchan_stats['副露率'],
+            hanchan_stats['和了率'],
+            hanchan_stats['放铳率'],
+            hanchan_stats['立直率'],
+            [hanchan_stats['一位率'], hanchan_stats['二位率'], hanchan_stats['三位率'], hanchan_stats['四位率']],
+            hanchan_stats['平均和了打点'],
+            0,
+            0,
+            hanchan_stats['默听率'],
+            hanchan_stats['局收支'],
+        ))
+    })
 
     # 四麻风格分析（可选）
     if config['save'].get("mahjong_analyzer", False):
@@ -580,19 +688,21 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, config):
         }
 
         # 风格分析
-        X, Y, style = mahjong_analyzer.analyze(data=data, output_filename=resource_path(f"./{target_player}_统计报告/{target_player}_风格分析.png"))
+        # X, Y, style = mahjong_analyzer.analyze(data=data, output_filename=resource_path(f"./{target_player}_统计报告/{target_player}_风格分析.png"))
+        X, Y, style, 风格分析图_bytes, 风格分析图_base64= mahjong_analyzer.analyze(data=data)
         print(f"成功生成风格分析图：{target_player}_风格分析图.png")
         hanchan_stats.update({
             '风格分析结果': style,
         })
+
     # 格式处理：数值保留4位小数
-    formatted_stats = pd.Series(hanchan_stats).to_frame('统计值')
-    formatted_stats['统计值'] = formatted_stats['统计值'].apply(
+    formatted_stats = pd.Series(hanchan_stats)
+    formatted_stats = formatted_stats.apply(
         lambda x: round(x, 4) if isinstance(x, float) else x
     )
 
-
-    try:
+    # try:
+    if True:
         # 生成csv文件
         if config['save']['csv'].get('formatted_stats', False):
             csv_file_name = resource_path(f"./{target_player}_统计报告/{target_player}_综合统计.csv")
@@ -646,14 +756,22 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, config):
         # pt变化柱状图和折线图（可选）
         if config['save'].get("pt_change", True):
             fig = plot_pt_changes(final_hanchan_df)
-            fig.savefig(resource_path(f"./{target_player}_统计报告/{target_player}_pt变化图.png"), dpi=300, bbox_inches='tight')  # 保存图表
+            # fig.savefig(resource_path(f"./{target_player}_统计报告/{target_player}_pt变化图.png"), dpi=300, bbox_inches='tight')  # 保存图表
+            img_buffer = BytesIO()
+            fig.savefig(img_buffer, format='png', dpi=300)
+            img_bytes = img_buffer.getvalue()
+            pt变化图_base64 = base64.b64encode(img_bytes).decode('utf-8')
             print(f"成功生成pt变化图：{target_player}_pt变化图.png")
 
         # rate变化柱状图和折线图（可选）
         if config['save'].get("rate_change", True):
             first_rate = final_hanchan_df.iloc[0]['玩家rate']
             fig = plot_rate_changes(final_hanchan_df, first_rate = first_rate)
-            fig.savefig(resource_path(f"./{target_player}_统计报告/{target_player}_rate变化图.png"), dpi=300, bbox_inches='tight')  # 保存图表
+            # fig.savefig(resource_path(f"./{target_player}_统计报告/{target_player}_rate变化图.png"), dpi=300, bbox_inches='tight')  # 保存图表
+            img_buffer = BytesIO()
+            fig.savefig(img_buffer, format='png', dpi=300)
+            img_bytes = img_buffer.getvalue()
+            rate变化图_base64 = base64.b64encode(img_bytes).decode('utf-8')
             print(f"成功生成rate变化图：{target_player}_rate变化图.png")
 
         # 相关性热力图（可选）
@@ -672,20 +790,55 @@ def generate_statistics(final_kyoku_df, final_hanchan_df, config):
                 plt.title(f'{method}相关系数热力图')
                 # 保存图片
                 plt.tight_layout()
-                save_path = resource_path(f"./{target_player}_统计报告/{target_player}_{method}相关系数热力图.png")
-                plt.savefig(save_path, dpi=300, bbox_inches="tight")
-                plt.close()  # 防止内存泄漏
+                # save_path = resource_path(f"./{target_player}_统计报告/{target_player}_{method}相关系数热力图.png")
+                # plt.savefig(save_path, dpi=300, bbox_inches="tight")
+                img_buffer = BytesIO()
+                plt.savefig(img_buffer, format='png', dpi=300)
+                plt.close()  # 关闭图像，防止内存泄漏
+                img_bytes = img_buffer.getvalue()
+                相关系数热力图_base64 = base64.b64encode(img_bytes).decode('utf-8')
+                
                 print(f"成功生成{method}相关系数热力图：{target_player}_{method}相关系数热力图.png")
             except Exception as e:
                 print(f"生成{method}相关系数热力图失败：{str(e)}")
 
         # 生成html报告
         if config['save'].get('html', True):
-            generate_html_report(target_player, resource_path(f"./{target_player}_统计报告"), formatted_stats, resource_path(f'./{target_player}_统计报告.html'))
+            basic_stats = formatted_stats[['有效牌谱数', '有效小局数', '平均顺位', '总pt变动', '总rate变动', '一位率', '二位率', '三位率', '四位率', '连对率', '被飞率', '和了率', '放铳率', '副露率', '立直率', '默听率', '局收支', 'tags', '风格分析结果']]
+            hand_stats = formatted_stats[['和了率', '平均和了打点', '平均和了巡目', '和牌时立直率', '和牌时副露率', '和牌自摸率']]
+            lichi_stats = formatted_stats[['立直率', '平均立直巡目', '立直和牌巡目', '立直先制率', '追立率', '立直后和牌率', '立直后自摸率', '立直和牌打点', '立直后放铳率', '立直后放铳打点', '立直后流局率']]
+            # 副露数据
+            furo_stats = formatted_stats[['副露率', '平均副露巡目', '副露和牌巡目', '副露和牌打点', '副露后放铳率', '副露后放铳打点', '副露后流局率']]
+            # 放铳数据
+            houju_stats = formatted_stats[['放铳率', '平均放铳巡目', '平均放铳打点', '放铳时立直率', '放铳时副露率', '放铳时门清率']]
+            # 流局数据
+            ryukyoku_stats = formatted_stats[['流局率', '流局听牌率', '流局平均得点', '立直流局时听牌率', '副露流局时听牌率', '门清流局时听牌率']]
+            
+            series_sections = [
+                ("基础统计", basic_stats),
+                ("和牌数据", hand_stats),
+                ("立直数据", lichi_stats),
+                ("副露数据", furo_stats),
+                ("放铳数据", houju_stats),
+                ("流局数据", ryukyoku_stats),
+                # 添加更多分段...
+            ]            
+
+            generate_html_report(
+                target_player,
+                {
+                    'pt变化图': pt变化图_base64,
+                    'rate变化图': rate变化图_base64,
+                    '风格分析图': 风格分析图_base64,
+                    '相关性热力图': 相关系数热力图_base64,
+                },  
+                series_sections,
+                resource_path(f'./{target_player}_统计报告.html')
+            )
             print(f"成功生成统计报告：{target_player}_统计报告.html")
 
-    except Exception as e:
-        print(f"文件保存失败：{str(e)}")
+    # except Exception as e:
+    #     print(f"文件保存失败：{str(e)}")
     
     return formatted_stats
 
@@ -730,11 +883,11 @@ if __name__ == "__main__":
     # 生成统计报告
     if not final_kyoku_df.empty:
         report = generate_statistics(final_kyoku_df, final_hanchan_df, config)
-        print("\n综合统计报告:")
-        print(report)
+        # print("\n综合统计报告:")
+        # print(report)
     else:
         print("未找到符合条件的牌谱数据")
 
-    print(f'统计报告已生成，点击 {config["filter"]["players"]}_统计报告.html 查看')
+    # print(f'统计报告已生成，点击 {config["filter"]["players"]}_统计报告.html 查看')
     webbrowser.open(resource_path(f'{config["filter"]["players"]}_统计报告.html'))
     input('按回车关闭')
